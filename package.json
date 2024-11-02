@@ -2,10 +2,9 @@
   "name": "island",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "src/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "http-server -p 8080",
     "dev": "vite",
     "build": "vite build",
     "deploy": "vite build && gh-pages -d dist"
@@ -15,7 +14,6 @@
   "license": "ISC",
   "devDependencies": {
     "gh-pages": "^6.2.0",
-    "http-server": "^14.1.1",
     "vite": "^5.4.10"
   },
   "dependencies": {
