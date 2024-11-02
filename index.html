@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Floating Island Weather</title>
 
-    <!-- take up full width and height of the page -->
+    <!-- Take up full width and height of the page -->
     <style>
       html,
       body {
@@ -15,15 +15,9 @@
         height: 100%;
       }
     </style>
+    <script type="module" crossorigin src="/island/assets/index-BgcluYv0.js"></script>
   </head>
   <body>
-    <script>
-      // Determine the base path dynamically
-      const basePath = window.location.hostname === 'localhost' ? './' : '/island/';
-      const script = document.createElement('script');
-      script.type = 'module';
-      script.src = `${basePath}index.js`;
-      document.body.appendChild(script);
-    </script>
+    <!-- Import main JavaScript module -->
   </body>
 </html>
