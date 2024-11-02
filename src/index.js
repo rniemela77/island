@@ -86,26 +86,38 @@ for (let i = 0; i < config.trees.count; i++) {
 }
 scene.add(treeMesh);
 
-// Touch Events
-let isPointerDown = false;
-let touchStartX = 0;
-document.addEventListener('touchstart', (e) => { isPointerDown = true; touchStartX = e.touches[0].clientX; }, { passive: false });
-document.addEventListener('touchend', () => { isPointerDown = false; }, { passive: false });
-document.addEventListener('touchmove', (e) => {
-  if (isPointerDown) {
-    const deltaX = e.touches[0].clientX - touchStartX;
-    camera.rotation.y -= deltaX * config.controls.touchSensitivity;
-    touchStartX = e.touches[0].clientX;
-    e.preventDefault();
+// Touch Handler Object
+const touchHandler = {
+  isPointerDown: false,
+  touchStartX: 0,
+  handleTouchStart(e) {
+    this.isPointerDown = true;
+    this.touchStartX = e.touches[0].clientX;
+  },
+  handleTouchEnd() {
+    this.isPointerDown = false;
+  },
+  handleTouchMove(e) {
+    if (this.isPointerDown) {
+      const deltaX = e.touches[0].clientX - this.touchStartX;
+      camera.rotation.y -= deltaX * config.controls.touchSensitivity;
+      this.touchStartX = e.touches[0].clientX;
+      e.preventDefault();
+    }
   }
-}, { passive: false });
+};
+
+// Attach consolidated touch events
+document.addEventListener('touchstart', touchHandler.handleTouchStart.bind(touchHandler), { passive: false });
+document.addEventListener('touchend', touchHandler.handleTouchEnd.bind(touchHandler), { passive: false });
+document.addEventListener('touchmove', touchHandler.handleTouchMove.bind(touchHandler), { passive: false });
 
 // Animation Loop
 let lastTime = 0;
 function animate(time) {
   if (time - lastTime < 1000 / config.controls.frameRateCap) return requestAnimationFrame(animate);
   lastTime = time;
-  if (isPointerDown) camera.translateZ(-config.controls.moveSpeed * 0.05);
+  if (touchHandler.isPointerDown) camera.translateZ(-config.controls.moveSpeed * 0.05);
   renderer.render(scene, camera);
   requestAnimationFrame(animate);
 }
