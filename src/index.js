@@ -22,8 +22,15 @@ const controls = new PointerLockControls(camera, document.body);
 // Movement variables
 let velocity = new THREE.Vector3();
 let direction = new THREE.Vector3();
-const moveSpeed = 5.0; // Reduced speed for smoother experience on mobile
-const dampingFactor = 0.3; // Increased damping for smoother deceleration
+
+// Centralized configuration object
+const config = {
+  moveSpeed: 5.0, // Reduced speed for smoother experience on mobile
+  dampingFactor: 0.3, // Increased damping for smoother deceleration
+  frameRateCap: 45, // Cap frame rate for mobile performance
+  delta: 0.05, // Reduced delta for smoother movement
+  touchSensitivity: 0.004, // Sensitivity for touch rotation
+};
 
 // Lighting
 const ambientLight = new THREE.AmbientLight(0x1b0e1e, 0.001); // Very dim ambient light for spooky atmosphere
@@ -58,65 +65,63 @@ let touchStartY = 0;
 let touchDeltaX = 0;
 let touchDeltaY = 0;
 
-// Handle touch events for mobile devices
-const preventDefaultOptions = { passive: false };
-document.addEventListener('touchstart', (event) => {
+// Consolidated event handling functions
+function handlePointerDown(event) {
   isPointerDown = true;
-  const touch = event.touches[0];
-  touchStartX = touch.clientX;
-  touchStartY = touch.clientY;
+  touchStartX = event.touches ? event.touches[0].clientX : event.clientX;
+  touchStartY = event.touches ? event.touches[0].clientY : event.clientY;
   event.preventDefault();
-}, preventDefaultOptions);
+}
 
-document.addEventListener('touchmove', (event) => {
+function handlePointerUp() {
+  isPointerDown = false;
+}
+
+document.addEventListener('touchstart', handlePointerDown, { passive: false });
+document.addEventListener('pointerdown', handlePointerDown, { passive: false });
+document.addEventListener('touchend', handlePointerUp, { passive: false });
+document.addEventListener('pointerup', handlePointerUp, { passive: false });
+
+// Handle touch events for mobile devices
+function handleTouchMove(event) {
   if (isPointerDown) {
     const touch = event.touches[0];
     touchDeltaX = touch.clientX - touchStartX;
     touchDeltaY = touch.clientY - touchStartY;
 
-    // Adjust camera rotation based on touch movement
-    camera.rotation.y -= touchDeltaX * 0.004;
-    
+    if (Math.abs(touchDeltaX) > Math.abs(touchDeltaY)) {
+      camera.rotation.y -= touchDeltaX * config.touchSensitivity;
+    }
+
     touchStartX = touch.clientX;
     touchStartY = touch.clientY;
     event.preventDefault();
   }
-}, preventDefaultOptions);
+}
 
-document.addEventListener('touchend', () => {
-  isPointerDown = false;
-}, preventDefaultOptions);
-
-// Desktop pointer controls
-document.addEventListener('pointerdown', (event) => {
-  isPointerDown = true;
-  event.preventDefault();
-}, preventDefaultOptions);
-
-document.addEventListener('pointerup', () => {
-  isPointerDown = false;
-}, preventDefaultOptions);
+document.addEventListener('touchmove', handleTouchMove, { passive: false });
 
 // Animation loop with capped frame rate for mobile performance
 let lastTime = 0;
+function updateMovement(delta) {
+  velocity.z -= velocity.z * config.dampingFactor;
+  direction.z = isPointerDown ? 1 : 0;
+  direction.normalize();
+
+  if (isPointerDown) velocity.z -= direction.z * config.moveSpeed * delta;
+
+  camera.translateZ(velocity.z * delta); // Move the camera directly
+}
+
 function animate(time) {
-  if (time - lastTime < 1000 / 45) { // 30 FPS cap for better performance on mobile
+  if (time - lastTime < 1000 / config.frameRateCap) {
     requestAnimationFrame(animate);
     return;
   }
   lastTime = time;
   requestAnimationFrame(animate);
 
-  const delta = 0.05; // Reduced delta for smoother movement
-  velocity.z -= velocity.z * dampingFactor;
-
-  direction.z = isPointerDown ? 1 : 0;
-  direction.normalize();
-
-  if (isPointerDown) velocity.z -= direction.z * moveSpeed * delta;
-
-  camera.translateZ(velocity.z * delta); // Move the camera directly
-
+  updateMovement(config.delta);
   renderer.render(scene, camera);
 }
 animate(0);
