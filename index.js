@@ -4,13 +4,15 @@ import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockCont
 
 // Scene setup
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x87ceeb); // Light blue sky background
+scene.background = new THREE.Color(0x222222); // Slightly brighter dark color for better visibility
+scene.fog = new THREE.FogExp2(0x111111, 0.03); // Significantly increase fog density for a very misty atmosphere
 
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 camera.position.set(0, 0.5, 1.5); // Camera position adjusted to make it feel smaller
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
 document.body.appendChild(renderer.domElement);
 
 // Pointer Lock Controls for first-person movement
@@ -26,16 +28,18 @@ const moveSpeed = 2.5; // Reduced speed for a more small-scale effect
 const dampingFactor = 0.15;
 
 // Lighting
-const ambientLight = new THREE.AmbientLight(0xffffff, 1);
+const ambientLight = new THREE.AmbientLight(0x707070, 1.2); // Slightly brighter ambient light for better visibility
 scene.add(ambientLight);
 
-const pointLight = new THREE.PointLight(0xffffff, 1, 100);
-pointLight.position.set(5, 10, 5);
-scene.add(pointLight);
+// Add a point light to simulate camera illumination like a firefly
+const cameraLight = new THREE.PointLight(0xffaa00, 2.0, 30); // Warm light color, reduced intensity and limited range for a firefly effect
+cameraLight.position.set(0, 0, 0);
+camera.add(cameraLight);
+scene.add(cameraLight);
 
 // Floor
 const floorGeometry = new THREE.PlaneGeometry(1000, 1000); // Increased floor size for larger environment
-const floorMaterial = new THREE.MeshStandardMaterial({ color: 0x228b22 }); // Green floor to represent grass
+const floorMaterial = new THREE.MeshStandardMaterial({ color: 0x3f5f3f }); // Slightly brighter dark green floor to represent forest ground
 const floor = new THREE.Mesh(floorGeometry, floorMaterial);
 floor.rotation.x = -Math.PI / 2;
 floor.receiveShadow = true;
@@ -51,7 +55,7 @@ function addTree(x, z) {
 
   // Trunk
   const trunkGeometry = new THREE.CylinderGeometry(0.5, 0.5, trunkHeight, 16);
-  const trunkMaterial = new THREE.MeshStandardMaterial({ color: 0x8b4513 });
+  const trunkMaterial = new THREE.MeshStandardMaterial({ color: 0x6b4f4f }); // Slightly brighter dark brown for trunk
   const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
   trunk.position.set(x, trunkHeight / 2, z);
   trunk.rotation.y = trunkRotation;
@@ -59,7 +63,7 @@ function addTree(x, z) {
 
   // Leaves
   const leavesGeometry = new THREE.ConeGeometry(leavesRadius, leavesHeight, 16);
-  const leavesMaterial = new THREE.MeshStandardMaterial({ color: 0x006400 });
+  const leavesMaterial = new THREE.MeshStandardMaterial({ color: 0x1a4420 }); // Slightly brighter dark green leaves
   const leaves = new THREE.Mesh(leavesGeometry, leavesMaterial);
   leaves.position.set(0, trunkHeight / 2 + leavesHeight / 2, 0); // Adjusted to be relative to the trunk
   leaves.castShadow = true;
@@ -108,6 +112,9 @@ function animate() {
 
     controls.moveForward(-velocity.z * delta);
   }
+
+  // Ensure camera light follows the camera position
+  cameraLight.position.copy(camera.position);
 
   renderer.render(scene, camera);
 }
