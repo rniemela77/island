@@ -23,7 +23,7 @@ const config = {
   controls: {
     moveSpeed: 5.0,
     dampingFactor: 0.3,
-    frameRateCap: 15,
+    frameRateCap: 45,
     touchSensitivity: 0.004
   },
   lighting: {
@@ -40,6 +40,15 @@ const config = {
     count: 300,
     spread: 80,
     heightRange: { min: 3, max: 5 }
+  },
+  fireflies: {
+    count: 100,
+    color: 0xffff00, // Bright yellow for better visibility
+    size: 0.3, // Smaller size for less intrusive appearance
+    spread: 100,
+    height: { min: 1, max: 10 },
+    speed: 0.02, // Speed factor for movement
+    pairProbability: 0.3 // Probability that a firefly moves in sync with another
   }
 };
 
@@ -94,6 +103,42 @@ for (let i = 0; i < config.trees.count; i++) {
 }
 scene.add(treeMesh);
 
+// Fireflies
+const fireflyGeometry = new THREE.BufferGeometry();
+const fireflyPositions = new Float32Array(config.fireflies.count * 3);
+const fireflyPairs = new Array(config.fireflies.count).fill(false);
+
+for (let i = 0; i < config.fireflies.count; i++) {
+  fireflyPositions[i * 3] = THREE.MathUtils.randFloatSpread(config.fireflies.spread);
+  fireflyPositions[i * 3 + 1] = THREE.MathUtils.randFloat(config.fireflies.height.min, config.fireflies.height.max);
+  fireflyPositions[i * 3 + 2] = THREE.MathUtils.randFloatSpread(config.fireflies.spread);
+
+  // Assign pairs with a certain probability
+  if (Math.random() < config.fireflies.pairProbability) {
+    fireflyPairs[i] = true;
+  }
+}
+
+fireflyGeometry.setAttribute('position', new THREE.BufferAttribute(fireflyPositions, 3));
+const fireflyMaterial = new THREE.PointsMaterial({ color: config.fireflies.color, size: config.fireflies.size, transparent: true, opacity: 0.8, depthTest: true, blending: THREE.AdditiveBlending });
+const fireflies = new THREE.Points(fireflyGeometry, fireflyMaterial);
+scene.add(fireflies);
+
+// Animation Loop for Fireflies
+let timeOffset = 0;
+function animateFireflies() {
+  timeOffset += config.fireflies.speed;
+  const positions = fireflyGeometry.attributes.position.array;
+
+  for (let i = 0; i < positions.length; i += 3) {
+    const pairOffset = fireflyPairs[i / 3] ? 0.5 : 1.0;
+    positions[i] += Math.sin(timeOffset + i) * config.fireflies.speed * pairOffset; // Smooth horizontal movement
+    positions[i + 1] += Math.sin(timeOffset * 0.5 + i) * config.fireflies.speed * 0.5; // Smooth vertical movement
+    positions[i + 2] += Math.cos(timeOffset + i) * config.fireflies.speed * 0.5 * pairOffset; // Smooth depth movement
+  }
+  fireflyGeometry.attributes.position.needsUpdate = true;
+}
+
 // Touch Handler Object
 const touchHandler = {
   isPointerDown: false,
@@ -129,6 +174,7 @@ function animate(time) {
   if (time - lastTime < 1000 / config.controls.frameRateCap) return requestAnimationFrame(animate);
   lastTime = time;
   if (touchHandler.isPointerDown) camera.translateZ(-config.controls.moveSpeed * 0.05);
+  animateFireflies();
   renderer.render(scene, camera);
   requestAnimationFrame(animate);
 }
