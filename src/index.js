@@ -1,132 +1,117 @@
-// Import Three.js library
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls';
 
-// Scene setup
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x1b0e1e); // Dark background for spooky atmosphere
-scene.fog = new THREE.FogExp2(0x1b0e1e, 0.3); // Lower fog density for performance
-
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 200); // Reduce far plane for performance
-camera.position.set(0, 0.5, 1.5);
-
-const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'low-power' }); // Disable antialiasing and use low-power mode
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5)); // Cap pixel density for mobile performance
-renderer.shadowMap.enabled = false;
-document.body.appendChild(renderer.domElement);
-
-// Pointer Lock Controls for first-person movement
-const controls = new PointerLockControls(camera, document.body);
-
-// Movement variables
-let velocity = new THREE.Vector3();
-let direction = new THREE.Vector3();
-
-// Centralized configuration object
+// Config Object
 const config = {
-  moveSpeed: 5.0, // Reduced speed for smoother experience on mobile
-  dampingFactor: 0.3, // Increased damping for smoother deceleration
-  frameRateCap: 45, // Cap frame rate for mobile performance
-  delta: 0.05, // Reduced delta for smoother movement
-  touchSensitivity: 0.004, // Sensitivity for touch rotation
+  scene: {
+    backgroundColor: 0x1b0e1e,
+    fogColor: 0x1b0e1e,
+    fogDensity: 0.3
+  },
+  camera: {
+    fov: 75,
+    aspect: window.innerWidth / window.innerHeight,
+    near: 0.1,
+    far: 200,
+    position: { x: 0, y: 0.5, z: 1.5 }
+  },
+  renderer: {
+    antialias: false,
+    powerPreference: 'low-power',
+    pixelRatioCap: 1.5
+  },
+  controls: {
+    moveSpeed: 5.0,
+    dampingFactor: 0.3,
+    frameRateCap: 15,
+    touchSensitivity: 0.004
+  },
+  lighting: {
+    ambient: { color: 0x1b0e1e, intensity: 0.001 },
+    directional: { color: 0xffffff, intensity: 0.1, position: { x: 10, y: 10, z: 10 } }
+  },
+  floor: {
+    geometry: { width: 100, height: 100 },
+    material: { color: 0x3f5f3f }
+  },
+  trees: {
+    trunk: { radiusTop: 0.3, radiusBottom: 0.6, height: 5, radialSegments: 6 },
+    material: { color: 0x6b4f4f },
+    count: 500,
+    spread: 80,
+    heightRange: { min: 3, max: 5 }
+  }
 };
 
+// Scene Setup
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(config.scene.backgroundColor);
+scene.fog = new THREE.FogExp2(config.scene.fogColor, config.scene.fogDensity);
+
+const camera = new THREE.PerspectiveCamera(config.camera.fov, config.camera.aspect, config.camera.near, config.camera.far);
+camera.position.set(config.camera.position.x, config.camera.position.y, config.camera.position.z);
+
+const renderer = new THREE.WebGLRenderer({ antialias: config.renderer.antialias, powerPreference: config.renderer.powerPreference });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, config.renderer.pixelRatioCap));
+document.body.appendChild(renderer.domElement);
+
+const controls = new PointerLockControls(camera, document.body);
+
 // Lighting
-const ambientLight = new THREE.AmbientLight(0x1b0e1e, 0.001); // Very dim ambient light for spooky atmosphere
+const ambientLight = new THREE.AmbientLight(config.lighting.ambient.color, config.lighting.ambient.intensity);
 scene.add(ambientLight);
 
+const directionalLight = new THREE.DirectionalLight(config.lighting.directional.color, config.lighting.directional.intensity);
+directionalLight.position.set(config.lighting.directional.position.x, config.lighting.directional.position.y, config.lighting.directional.position.z);
+scene.add(directionalLight);
+
 // Floor
-const floorGeometry = new THREE.PlaneGeometry(100, 100, 1, 1); // Simplified floor geometry for performance
-const floorMaterial = new THREE.MeshBasicMaterial({ color: 0x3f5f3f }); // Basic material for better performance
+const floorGeometry = new THREE.PlaneGeometry(config.floor.geometry.width, config.floor.geometry.height);
+const floorMaterial = new THREE.MeshBasicMaterial({ color: config.floor.material.color });
 const floor = new THREE.Mesh(floorGeometry, floorMaterial);
 floor.rotation.x = -Math.PI / 2;
 scene.add(floor);
 
-// Add Trees using Instanced Mesh for better performance
-const trunkGeometry = new THREE.CylinderGeometry(0.3, 0.6, 5, 6); // Reduced segments for performance
-const trunkMaterial = new THREE.MeshBasicMaterial({ color: 0x6b4f4f });
-const numTrees = 500;
-const treeMesh = new THREE.InstancedMesh(trunkGeometry, trunkMaterial, numTrees);
-
-for (let i = 0; i < numTrees; i++) {
-  const x = THREE.MathUtils.randFloatSpread(80);
-  const z = THREE.MathUtils.randFloatSpread(80);
-  const trunkHeight = THREE.MathUtils.randFloat(3, 5);
+// Trees
+const trunkGeometry = new THREE.CylinderGeometry(config.trees.trunk.radiusTop, config.trees.trunk.radiusBottom, config.trees.trunk.height, config.trees.trunk.radialSegments);
+const trunkMaterial = new THREE.MeshBasicMaterial({ color: config.trees.material.color });
+const treeMesh = new THREE.InstancedMesh(trunkGeometry, trunkMaterial, config.trees.count);
+for (let i = 0; i < config.trees.count; i++) {
+  const x = THREE.MathUtils.randFloatSpread(config.trees.spread);
+  const z = THREE.MathUtils.randFloatSpread(config.trees.spread);
+  const trunkHeight = THREE.MathUtils.randFloat(config.trees.heightRange.min, config.trees.heightRange.max);
   const matrix = new THREE.Matrix4().makeTranslation(x, trunkHeight / 2, z);
   treeMesh.setMatrixAt(i, matrix);
 }
 scene.add(treeMesh);
 
-// Mobile-friendly controls using pointer events
+// Touch Events
 let isPointerDown = false;
 let touchStartX = 0;
-let touchStartY = 0;
-let touchDeltaX = 0;
-let touchDeltaY = 0;
-
-// Consolidated event handling functions
-function handlePointerDown(event) {
-  isPointerDown = true;
-  touchStartX = event.touches ? event.touches[0].clientX : event.clientX;
-  touchStartY = event.touches ? event.touches[0].clientY : event.clientY;
-  event.preventDefault();
-}
-
-function handlePointerUp() {
-  isPointerDown = false;
-}
-
-document.addEventListener('touchstart', handlePointerDown, { passive: false });
-document.addEventListener('pointerdown', handlePointerDown, { passive: false });
-document.addEventListener('touchend', handlePointerUp, { passive: false });
-document.addEventListener('pointerup', handlePointerUp, { passive: false });
-
-// Handle touch events for mobile devices
-function handleTouchMove(event) {
+document.addEventListener('touchstart', (e) => { isPointerDown = true; touchStartX = e.touches[0].clientX; }, { passive: false });
+document.addEventListener('touchend', () => { isPointerDown = false; }, { passive: false });
+document.addEventListener('touchmove', (e) => {
   if (isPointerDown) {
-    const touch = event.touches[0];
-    touchDeltaX = touch.clientX - touchStartX;
-    touchDeltaY = touch.clientY - touchStartY;
-
-    if (Math.abs(touchDeltaX) > Math.abs(touchDeltaY)) {
-      camera.rotation.y -= touchDeltaX * config.touchSensitivity;
-    }
-
-    touchStartX = touch.clientX;
-    touchStartY = touch.clientY;
-    event.preventDefault();
+    const deltaX = e.touches[0].clientX - touchStartX;
+    camera.rotation.y -= deltaX * config.controls.touchSensitivity;
+    touchStartX = e.touches[0].clientX;
+    e.preventDefault();
   }
-}
+}, { passive: false });
 
-document.addEventListener('touchmove', handleTouchMove, { passive: false });
-
-// Animation loop with capped frame rate for mobile performance
+// Animation Loop
 let lastTime = 0;
-function updateMovement(delta) {
-  velocity.z -= velocity.z * config.dampingFactor;
-  direction.z = isPointerDown ? 1 : 0;
-  direction.normalize();
-
-  if (isPointerDown) velocity.z -= direction.z * config.moveSpeed * delta;
-
-  camera.translateZ(velocity.z * delta); // Move the camera directly
-}
-
 function animate(time) {
-  if (time - lastTime < 1000 / config.frameRateCap) {
-    requestAnimationFrame(animate);
-    return;
-  }
+  if (time - lastTime < 1000 / config.controls.frameRateCap) return requestAnimationFrame(animate);
   lastTime = time;
-  requestAnimationFrame(animate);
-
-  updateMovement(config.delta);
+  if (isPointerDown) camera.translateZ(-config.controls.moveSpeed * 0.05);
   renderer.render(scene, camera);
+  requestAnimationFrame(animate);
 }
 animate(0);
 
-// Handle window resize
+// Resize Handler
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
