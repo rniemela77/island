@@ -35,13 +35,21 @@ const config = {
     material: { color: 0x3f5f3f }
   },
   trees: {
-    trunk: { radiusTop: 0.3, radiusBottom: 0.6, height: 5, radialSegments: 6 },
+    trunk: { radiusTop: 0.3, radiusBottom: 0.6, height: 5, radialSegments: 4 },
     material: { color: 0x6b4f4f },
-    count: 500,
+    count: 300,
     spread: 80,
     heightRange: { min: 3, max: 5 }
   }
 };
+
+// Adjust config for mobile
+if (/Mobi|Android/i.test(navigator.userAgent)) {
+  config.controls.moveSpeed = 2.5; // Reduce speed for mobile
+  config.camera.far = 100; // Decrease far clipping plane
+  config.trees.count = 300; // Reduce tree count
+  config.renderer.pixelRatioCap = 1.0; // Lower pixel ratio for mobile
+}
 
 // Scene Setup
 const scene = new THREE.Scene();
@@ -67,7 +75,7 @@ directionalLight.position.set(config.lighting.directional.position.x, config.lig
 scene.add(directionalLight);
 
 // Floor
-const floorGeometry = new THREE.PlaneGeometry(config.floor.geometry.width, config.floor.geometry.height);
+const floorGeometry = new THREE.PlaneGeometry(config.floor.geometry.width, config.floor.geometry.height, 1, 1);
 const floorMaterial = new THREE.MeshBasicMaterial({ color: config.floor.material.color });
 const floor = new THREE.Mesh(floorGeometry, floorMaterial);
 floor.rotation.x = -Math.PI / 2;
@@ -115,6 +123,9 @@ document.addEventListener('touchmove', touchHandler.handleTouchMove.bind(touchHa
 // Animation Loop
 let lastTime = 0;
 function animate(time) {
+  if (document.hidden) {
+    return requestAnimationFrame(animate);
+  }
   if (time - lastTime < 1000 / config.controls.frameRateCap) return requestAnimationFrame(animate);
   lastTime = time;
   if (touchHandler.isPointerDown) camera.translateZ(-config.controls.moveSpeed * 0.05);
@@ -128,4 +139,11 @@ window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// Visibility Change Event
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) {
+    animate(0);
+  }
 });
