@@ -105,17 +105,27 @@ floor.rotation.x = -Math.PI / 2;
 scene.add(floor);
 
 // Trees
-const trunkGeometry = new THREE.CylinderGeometry(config.trees.trunk.radiusTop, config.trees.trunk.radiusBottom, config.trees.trunk.height, config.trees.trunk.radialSegments);
+const trunkGeometry = new THREE.CylinderGeometry(config.trees.trunk.radiusTop, config.trees.trunk.radiusBottom, 1, config.trees.trunk.radialSegments); // Height set to 1, will be scaled
 const trunkMaterial = new THREE.MeshBasicMaterial({ color: config.trees.material.color });
 const treeMesh = new THREE.InstancedMesh(trunkGeometry, trunkMaterial, config.trees.count);
+
+const leafGeometry = new THREE.CylinderGeometry(1, 1, 0.2, 8); // Fat disc for leaves
+const leafMaterial = new THREE.MeshBasicMaterial({ color: 0x3f5f3f }); // Green color for leaves
+const leafMesh = new THREE.InstancedMesh(leafGeometry, leafMaterial, config.trees.count);
+
 for (let i = 0; i < config.trees.count; i++) {
   const x = THREE.MathUtils.randFloatSpread(config.trees.spread);
   const z = THREE.MathUtils.randFloatSpread(config.trees.spread);
-  const trunkHeight = THREE.MathUtils.randFloat(config.trees.heightRange.min, config.trees.heightRange.max);
-  const matrix = new THREE.Matrix4().makeTranslation(x, trunkHeight / 2, z);
-  treeMesh.setMatrixAt(i, matrix);
+  const trunkHeight = THREE.MathUtils.randFloat(config.trees.heightRange.min, config.trees.heightRange.max); // Random trunk height
+  const trunkMatrix = new THREE.Matrix4().makeTranslation(x, trunkHeight / 2, z).scale(new THREE.Vector3(1, trunkHeight, 1));
+  treeMesh.setMatrixAt(i, trunkMatrix);
+
+  const leafMatrix = new THREE.Matrix4().makeTranslation(x, trunkHeight + 0.1, z); // Position leaves on top of the trunk
+  leafMesh.setMatrixAt(i, leafMatrix);
 }
+
 scene.add(treeMesh);
+scene.add(leafMesh);
 
 // Fireflies
 const fireflyGeometry = new THREE.BufferGeometry();
