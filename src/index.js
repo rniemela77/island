@@ -140,12 +140,18 @@ const treeMesh = new THREE.InstancedMesh(
 );
 
 const leafGeometry = new THREE.CylinderGeometry(1, 1, 0.2, 8); // Fat disc for leaves
-const leafMaterial = new THREE.MeshBasicMaterial({ color: 0x3f5f3f }); // Green color for leaves
+const leafMaterial = new THREE.MeshBasicMaterial({
+  color: 0x3f5f3f, // Green color for leaves
+  transparent: true, // Enable transparency
+  opacity: 0.5, // Set opacity to 50%
+});
 const leafMesh = new THREE.InstancedMesh(
   leafGeometry,
   leafMaterial,
   config.trees.count
 );
+
+scene.add(leafMesh);
 
 for (let i = 0; i < config.trees.count; i++) {
   const x = THREE.MathUtils.randFloatSpread(config.trees.spread);
