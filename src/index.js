@@ -53,7 +53,7 @@ const config = {
     material: { color: 0x6b4f4f },
     count: 300,
     spread: 40,
-    heightRange: { min: -1, max: 3 }
+    heightRange: { min: -1, max: 25 }
   },
   fireflies: {
     count: 100,
