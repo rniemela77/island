@@ -1,22 +1,12 @@
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls';
 
-const color = 0x1b0e1e; // Dark purple background color
-/*
- colors: {
-    darkPurple: 0x1b0e1e,
-    lightPurple: 0x3f5f3f,
-    brown: 0x6b4f4f,
-    yellow: 0xffff00
-    darkerPurple: 0x1b0e1e,
-  }
-*/
 // Config Object
 const config = {
   scene: {
-    backgroundColor: color, // Dark purple background
-    fogColor: color, // Same as background for seamless transition
-    fogDensity: 0.1 // Density for fog effect
+    backgroundColor: 0x010F4A, // Dark purple background
+    fogColor: 0x060507, // Same as background for seamless transition
+    fogDensity: 0.35 // Density for fog effect
   },
   camera: {
     fov: 95,
@@ -36,21 +26,13 @@ const config = {
     frameRateCap: 15,
     touchSensitivity: 0.004
   },
-  lighting: {
-    ambient: { color: 0x1b0e1e, intensity: 0.0001 }, // Ambient light with low intensity
-    directional: { 
-      color: 0xffffff, 
-      intensity: 0.00000001, // Low intensity for subtle effect 
-      position: { x: 10, y: 10, z: 10 } 
-    } // Directional light with low intensity
-  },
   floor: {
     geometry: { width: 100, height: 100 },
-    material: { color: 0x3f5f3f }
+    material: { color: 0x1C291A }
   },
   trees: {
     trunk: { radiusTop: 0.3, radiusBottom: 0.6, height: 6, radialSegments: 3 },
-    material: { color: 0x6b4f4f },
+    material: { color: 0x352C2C },
     count: 300,
     spread: 40,
     heightRange: { min: -1, max: 25 }
@@ -86,16 +68,6 @@ const renderer = new THREE.WebGLRenderer({ antialias: config.renderer.antialias,
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, config.renderer.pixelRatioCap));
 document.body.appendChild(renderer.domElement);
-
-const controls = new PointerLockControls(camera, document.body);
-
-// Lighting
-const ambientLight = new THREE.AmbientLight(config.lighting.ambient.color, config.lighting.ambient.intensity);
-scene.add(ambientLight);
-
-const directionalLight = new THREE.DirectionalLight(config.lighting.directional.color, config.lighting.directional.intensity);
-directionalLight.position.set(config.lighting.directional.position.x, config.lighting.directional.position.y, config.lighting.directional.position.z);
-scene.add(directionalLight);
 
 // Floor
 const floorGeometry = new THREE.PlaneGeometry(config.floor.geometry.width, config.floor.geometry.height, 1, 1);
