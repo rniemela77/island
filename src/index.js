@@ -96,9 +96,6 @@ const light = new THREE.PointLight(config.light.color, config.light.intensity);
 camera.add(light);
 scene.add(camera); // Re-add the camera after attaching the light
 
-// const ambientLight = new THREE.AmbientLight(0xffffff, 2.5); // Soft white light
-// scene.add(ambientLight);
-
 // Create controls (pc)
 const controls = new PointerLockControls(camera, renderer.domElement);
 controls.movementSpeed = config.controls.moveSpeed;
@@ -175,6 +172,15 @@ for (let i = 0; i < config.trees.count; i++) {
 
 scene.add(treeMesh);
 scene.add(leafMesh);
+
+// Function to wrap the player when moving beyond certain boundaries
+function wrapPosition(object) {
+  const boundary = config.trees.spread / 2;
+  if (object.position.x > boundary) object.position.x -= config.trees.spread;
+  if (object.position.x < -boundary) object.position.x += config.trees.spread;
+  if (object.position.z > boundary) object.position.z -= config.trees.spread;
+  if (object.position.z < -boundary) object.position.z += config.trees.spread;
+}
 
 // Fireflies
 const fireflyGeometry = new THREE.BufferGeometry();
@@ -276,12 +282,14 @@ function animate(time) {
   if (document.hidden) {
     return requestAnimationFrame(animate);
   }
-  if (time - lastTime < 1000 / config.controls.frameRateCap)
+  if (time - lastTime < 1000 / config.controls.frameRateCap) {
     return requestAnimationFrame(animate);
+  }
   lastTime = time;
 
-  if (touchHandler.isPointerDown)
+  if (touchHandler.isPointerDown) {
     camera.translateZ(-config.controls.moveSpeed * 0.05);
+  }
 
   // Add flickering effect to the light's intensity
   const flickerSpeed = 10; // Speed at which the light flickers
@@ -295,6 +303,7 @@ function animate(time) {
 
   // Update other animation elements
   animateFireflies();
+  wrapPosition(camera);
   renderer.render(scene, camera);
   requestAnimationFrame(animate);
 }
@@ -307,9 +316,12 @@ window.addEventListener("resize", () => {
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
-// Visibility Change Event
+let visibilityTimeout;
 document.addEventListener("visibilitychange", () => {
-  if (!document.hidden) {
-    animate(0);
-  }
+  clearTimeout(visibilityTimeout);
+  visibilityTimeout = setTimeout(() => {
+    if (!document.hidden) {
+      animate(0);
+    }
+  }, 100);
 });
