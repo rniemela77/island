@@ -3,7 +3,8 @@ import { PointerLockControls } from "three/examples/jsm/controls/PointerLockCont
 import { config } from "./config";
 
 // Adjust config for mobile
-if (/Mobi|Android/i.test(navigator.userAgent)) {
+const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+if (isMobile) {
   config.controls.moveSpeed = 2.5; // Reduce speed for mobile
   config.camera.far = 100; // Decrease far clipping plane
   config.trees.count = 300; // Reduce tree count
@@ -50,6 +51,68 @@ const controls = new PointerLockControls(camera, renderer.domElement);
 controls.movementSpeed = config.controls.moveSpeed;
 controls.lookSpeed = config.controls.dampingFactor;
 scene.add(controls.getObject());
+
+// Mouse movement and input variables
+let isMovingForward = false;
+let mouseX = 0;
+let mouseY = 0;
+
+// Instructions element for mouse controls
+const blocker = document.createElement('div');
+blocker.id = 'blocker';
+blocker.style.position = 'absolute';
+blocker.style.width = '100%';
+blocker.style.height = '100%';
+blocker.style.backgroundColor = 'rgba(0,0,0,0.5)';
+blocker.style.display = 'flex';
+blocker.style.justifyContent = 'center';
+blocker.style.alignItems = 'center';
+blocker.style.zIndex = '10';
+blocker.style.color = 'white';
+blocker.style.fontSize = '16px';
+blocker.style.fontFamily = 'Arial, sans-serif';
+blocker.innerHTML = '<div style="text-align:center; padding: 20px;">Click to start<br><small>Move with mouse, click to walk forward</small></div>';
+document.body.appendChild(blocker);
+
+// Mouse control implementation
+blocker.addEventListener('click', function() {
+  controls.lock();
+});
+
+controls.addEventListener('lock', function() {
+  blocker.style.display = 'none';
+});
+
+controls.addEventListener('unlock', function() {
+  blocker.style.display = 'flex';
+  isMovingForward = false; // Reset movement when controls are unlocked
+});
+
+// Allow exiting pointer lock with Escape key
+document.addEventListener('keydown', function(event) {
+  if (event.key === 'Escape' && controls.isLocked) {
+    controls.unlock();
+  }
+});
+
+// Mouse click to move forward
+document.addEventListener('mousedown', function() {
+  if (controls.isLocked) {
+    isMovingForward = true;
+  }
+});
+
+document.addEventListener('mouseup', function() {
+  isMovingForward = false;
+});
+
+// Mouse movement
+document.addEventListener('mousemove', function(event) {
+  if (controls.isLocked) {
+    mouseX = event.movementX || 0;
+    mouseY = event.movementY || 0;
+  }
+});
 
 // Floor
 const floorMaterial = new THREE.MeshPhongMaterial({
@@ -125,10 +188,58 @@ scene.add(leafMesh);
 // Function to wrap the player when moving beyond certain boundaries
 function wrapPosition(object) {
   const boundary = config.trees.spread / 2;
-  if (object.position.x > boundary) object.position.x -= config.trees.spread;
-  if (object.position.x < -boundary) object.position.x += config.trees.spread;
-  if (object.position.z > boundary) object.position.z -= config.trees.spread;
-  if (object.position.z < -boundary) object.position.z += config.trees.spread;
+  const spread = config.trees.spread;
+
+  if (object.position.x > boundary) {
+    object.position.x -= spread;
+    duplicateForest(object.position.x, object.position.z);
+  }
+  if (object.position.x < -boundary) {
+    object.position.x += spread;
+    duplicateForest(object.position.x, object.position.z);
+  }
+  if (object.position.z > boundary) {
+    object.position.z -= spread;
+    duplicateForest(object.position.x, object.position.z);
+  }
+  if (object.position.z < -boundary) {
+    object.position.z += spread;
+    duplicateForest(object.position.x, object.position.z);
+  }
+}
+
+function duplicateForest(x, z) {
+  // Create a new forest section at the given position
+  const newForest = createForest();
+  newForest.position.set(x, 0, z);
+  scene.add(newForest);
+}
+
+function createForest() {
+  const forest = new THREE.Group();
+  for (let i = 0; i < config.trees.count; i++) {
+    const tree = createTree();
+    tree.position.set(
+      Math.random() * config.trees.spread - config.trees.spread / 2,
+      0,
+      Math.random() * config.trees.spread - config.trees.spread / 2
+    );
+    forest.add(tree);
+  }
+  return forest;
+}
+
+function createTree() {
+  const geometry = new THREE.CylinderGeometry(
+    config.trees.trunk.radiusTop,
+    config.trees.trunk.radiusBottom,
+    config.trees.trunk.height,
+    config.trees.trunk.radialSegments
+  );
+  const material = new THREE.MeshStandardMaterial({
+    color: config.trees.material.color,
+  });
+  return new THREE.Mesh(geometry, material);
 }
 
 // Fireflies
@@ -225,6 +336,18 @@ document.addEventListener(
   { passive: false }
 );
 
+// Show appropriate controls based on device
+if (isMobile) {
+  blocker.innerHTML = '<div style="text-align:center; padding: 20px;">Tap to start<br><small>Touch and drag to look around<br>Touch and hold to move forward</small></div>';
+} else {
+  // On desktop, make touch controls work alongside mouse controls
+  document.addEventListener('click', function() {
+    if (!controls.isLocked) {
+      controls.lock();
+    }
+  });
+}
+
 // Animation Loop
 let lastTime = 0;
 function animate(time) {
@@ -236,7 +359,8 @@ function animate(time) {
   }
   lastTime = time;
 
-  if (touchHandler.isPointerDown) {
+  // Handle forward movement from touch and mouse
+  if (touchHandler.isPointerDown || isMovingForward) {
     camera.translateZ(-config.controls.moveSpeed * 0.05);
   }
 
